@@ -34,6 +34,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 //************************************************ High level API - n unlimited ****************************************************
 // Compress integer array with n values to the buffer out. 
 // Return value = number of bytes written to compressed buffer out
@@ -294,13 +295,13 @@ unsigned char *p4zdec64(      unsigned char *__restrict in, unsigned n, uint64_t
 static inline unsigned p4bits(unsigned char *__restrict in, int *bx) { unsigned i = ctou16(in); *bx = P4D_XB(i); return P4D_B(i); }
 
 struct p4 {
-  unsigned long long *xmap;
+  uint64_t* xmap;
   unsigned char *ex;
   unsigned isx,bx,cum[P4D_MAX/64+1];
   int oval,idx;
 };
 
-static unsigned long long p4xmap[P4D_MAX/64+1] = { 0 };
+static uint64_t p4xmap[P4D_MAX/64+1] = { 0 };
 
 // prepare direct access usage
 static inline void p4ini(struct p4 *p4, unsigned char **pin, unsigned n, unsigned *b) { unsigned char *in = *pin;

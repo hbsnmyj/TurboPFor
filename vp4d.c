@@ -264,7 +264,7 @@ extern char _shuffle_16[256][16];
 #define uint_t TEMPLATE3(uint, USIZE, _t)
 
 #pragma GCC push_options
-#pragma GCC optimize ("align-functions=16")
+//#pragma GCC optimize ("align-functions=16")
 
 ALWAYS_INLINE unsigned char *TEMPLATE2(_P4DEC, USIZE)(unsigned char *__restrict in, unsigned n, uint_t *__restrict out P4DELTA(uint_t start), unsigned b, unsigned bx ) {
   if(!(b & 0x80)) {
