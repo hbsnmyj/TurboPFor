@@ -8,7 +8,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MARCH}")
 
 set(SOURCE_FILES
         vp4c.c
-        vp4d.c)
+        vp4d.c
+        vint.c
+        bitpack.c
+        bitunpack.c
+        bitutil.c)
 
 add_library(turbopfor ${SOURCE_FILES})
 

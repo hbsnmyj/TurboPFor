@@ -192,6 +192,7 @@ inline unsigned char *_p4enc128v32( uint32_t *__restrict in, unsigned n, unsigne
 inline unsigned char *_p4enc128v64( uint64_t *__restrict in, unsigned n, unsigned char *__restrict out, unsigned b, unsigned bx); // SIMD (Vertical bitpacking)
 inline unsigned char *_p4enc256v32( uint32_t *__restrict in, unsigned n, unsigned char *__restrict out, unsigned b, unsigned bx); 
 inline unsigned char *_p4enc64(     uint64_t *__restrict in, unsigned n, unsigned char *__restrict out, unsigned b, unsigned bx);
+
 // calculate the best bit sizes b and bx, return b. 
 unsigned _p4bits8(           uint8_t  *__restrict in, unsigned n, unsigned *pbx);
 unsigned _p4bits16(          uint16_t *__restrict in, unsigned n, unsigned *pbx);
