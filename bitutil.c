@@ -221,7 +221,7 @@ unsigned bitf32(  uint32_t *in, unsigned n, uint32_t start) { return n?bsr32(in[
 unsigned bitf132( uint32_t *in, unsigned n, uint32_t start) { return n?bsr32(in[n-1] - start - n):0; }
 
 //------------------- Zigzag ---------------------------
-#define ZE(i) x = (int)_p[i]-(int)start; x = (x << 1) ^ (x >> (sizeof(x)*8-1)); start = _p[i]
+#define ZE(i) x = (long long)_p[i]-(long long)start; x = (x << 1) ^ (x >> (sizeof(x)*8-1)); start = _p[i]
 #define BITZENC(_t_, _p_,_n_, _act_) { _t_ *_p;\
   for(_p = _p_; _p != _p_+(_n_&~(4-1)); _p += 4) { ZE(0);_act_; ZE(1);_act_; ZE(2);_act_; ZE(3);_act_; }\
   for(;_p != _p_+_n_; _p++) { ZE(0); _act_;}\
