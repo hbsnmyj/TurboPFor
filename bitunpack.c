@@ -70,6 +70,7 @@ typedef unsigned char *(*BITUNPACK_D64)(const unsigned char *__restrict in, unsi
 #include "bitunpack_.h"
     
 #define OUT( _op_, _x_, _w_, _parm_) OP(_op_,_x_) = (_parm_ += TEMPLATE2(zigzagdec, USIZE)(_w_))
+
 #define _BITUNPACK_ bitzunpack  // zigzag
 #include "bitunpack_.h"
 
