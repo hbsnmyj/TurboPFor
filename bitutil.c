@@ -259,7 +259,7 @@ unsigned bitz32(unsigned *in, unsigned n, unsigned start) {
 
 unsigned bitzenc8( uint8_t  *in, unsigned n, uint8_t  *out, uint8_t  start, uint8_t  mindelta) { uint8_t  b = 0,*op = out,x; BITZENC(uint8_t,  in, n, b |= x; *op++ = x);  return bsr8(b);  }
 unsigned bitzenc16(uint16_t *in, unsigned n, uint16_t *out, uint16_t start, uint16_t mindelta) { uint16_t b = 0,*op = out,x; BITZENC(uint16_t, in, n, b |= x; *op++ = x); return bsr16(b); }
-unsigned bitzenc64(uint64_t *in, unsigned n, uint64_t *out, uint64_t start, uint64_t mindelta) { uint64_t b = 0,*op = out,x; BITZENC(uint64_t, in, n, b |= x; *op++ = x); return bsr32(b); }
+unsigned bitzenc64(uint64_t *in, unsigned n, uint64_t *out, uint64_t start, uint64_t mindelta) { uint64_t b = 0,*op = out,x; BITZENC(uint64_t, in, n, b |= x; *op++ = x); return bsr64(b); }
 unsigned bitzenc32(unsigned *in, unsigned n, unsigned *out, unsigned start, uint32_t mindelta) {
     #ifdef __SSE2__
   unsigned *ip,b,*op = out; 
