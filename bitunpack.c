@@ -64,7 +64,7 @@ typedef unsigned char *(*BITUNPACK_D64)(const unsigned char *__restrict in, unsi
 #define _BITUNPACK_ bitdunpack  // delta + 0
 #include "bitunpack_.h"
     
-#define OUT( _op_, _x_, _w_, _parm_) OP(_op_,_x_) = (_parm_ += zigzagdec32(_w_))
+#define OUT( _op_, _x_, _w_, _parm_) OP(_op_,_x_) = (_parm_ += zigzagdec64(_w_))
 #define _BITUNPACK_ bitzunpack  // zigzag
 #include "bitunpack_.h"
   
