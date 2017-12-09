@@ -9,7 +9,7 @@
       #if C_FASTPFOR
 	case FP_FASTPFOR: { 	
 	  size_t nvalue = n;
-      FastPForLib::FastPFor<4> ic; const uint32_t *ip = ic.decodeArray((const int32_t *)(in+4), ctou32(in), out, nvalue);
+      FastPForLib::FastPFor<4> ic; const uint32_t *ip = ic.decodeArray((const uint32_t *)(in+4), ctou32(in), out, nvalue);
       if(n & 127) { 
         nvalue = n - nvalue;
 	    FastPForLib::VariableByte vc;
@@ -20,7 +20,7 @@
 
 	case FP_SIMDFASTPFOR:  { 	
 	  size_t nvalue = n;
-      FastPForLib::SIMDFastPFor<4> ic; const uint32_t *ip = ic.decodeArray((const int32_t *)(in+4), ctou32(in), out, nvalue);
+      FastPForLib::SIMDFastPFor<4> ic; const uint32_t *ip = ic.decodeArray((const uint32_t *)(in+4), ctou32(in), out, nvalue);
       if(n & 127) { 
         nvalue = n - nvalue;
 	    FastPForLib::VariableByte vc;
@@ -30,7 +30,7 @@
     }
 	case FP_SIMDOPTPFOR:  { 	
 	  size_t nvalue = n;
-      FastPForLib::SIMDOPTPFor<4> ic; const uint32_t *ip = ic.decodeArray((const int32_t *)(in+4), ctou32(in), out, nvalue);
+      FastPForLib::SIMDOPTPFor<4> ic; const uint32_t *ip = ic.decodeArray((const uint32_t *)(in+4), ctou32(in), out, nvalue);
       if(n & 127) { 
         nvalue = n - nvalue;
 	    FastPForLib::VariableByte vc;
@@ -38,11 +38,21 @@
       }
       return (unsigned char *)ip; 
     } 
+	case FP_GROUPSIMPLE:  { 	
+	  size_t nvalue = n;
+      FastPForLib::SIMDGroupSimple<false,false> ic; const uint32_t *ip = ic.decodeArray((const uint32_t *)(in+4), ctou32(in), out, nvalue);
+      if(n & 127) { 
+        nvalue = n - nvalue;
+	    FastPForLib::VariableByte vc;
+		return (unsigned char *)vc.decodeArray(ip, (const uint32_t *)in+1+ctou32(in) - ip, out + (n&(~127)), nvalue);	  //return vbdec32((unsigned char *)ip, n & 127, out + mynvalue1);
+      }
+      return (unsigned char *)ip; 
+    }
 
     case FP_VBYTE:  //return vbytedec( in, n, out); 
-	  { size_t nvalue=n; FastPForLib::VariableByte ic;       return (unsigned char *)ic.decodeArray((const int32_t *)(in+4), ctou32(in), (uint32_t *)out, nvalue); }
+	  { size_t nvalue=n; FastPForLib::VariableByte ic;       return (unsigned char *)ic.decodeArray((const uint32_t *)(in+4), ctou32(in), (uint32_t *)out, nvalue); }
     case FP_SIMPLE8BRLE:  
-	  { size_t nvalue=n; FastPForLib::Simple8b_RLE<true> ic; ic.decodeArray((const int32_t *)(in+4), ctou32(in), (uint32_t *)out, nvalue); return in+4+ctou32(in)*4; }
+	  { size_t nvalue=n; FastPForLib::Simple8b_RLE<true> ic; ic.decodeArray((const uint32_t *)(in+4), ctou32(in), (uint32_t *)out, nvalue); return in+4+ctou32(in)*4; }
 	  #endif
 	
       #if C_LIBFOR
@@ -84,12 +94,8 @@
 	  #if C_STREAMVBYTE 
     case P_STREAMVBYTE:  return in +  streamvbyte_decode(in, out, n); 
       #endif 
-	 
-      #if C_QMX    										//case P_QMX: return qmx_dec(in+4, ctou32(in), out, n); 
-	case P_QMX:  { ANT_compress_qmx  qmx;   qmx.decompress(out, n,  in+4, ctou32(in)); return in+4+ctou32(in);} 	// { unsigned char *q = qmx_enc(in, n, out+4); ctou32(out) = q - (out+4); return q;
-    case P_QMX2: { ANT_compress_qmx_v2 qmx; qmx.decompress(out, n,  in+4, ctou32(in)); return in+4+ctou32(in);}
-    case P_QMX3: { ANT_compress_qmx_v3 qmx; qmx.decompress(out, n,  in+4, ctou32(in)); return in+4+ctou32(in);}
-    case P_QMX4: { ANT_compress_qmx_v4 qmx; qmx.decompress(out, n,  in+4, ctou32(in)); return in+4+ctou32(in);}	 
+      #if C_QMX    										
+	case P_QMX:  { JASS::compress_integer_qmx_improved qmx; qmx.decode(out, n,  in+4, ctou32(in)); return in+4+ctou32(in); }
       #endif
 
       #if C_VARINTG8IU

@@ -24,13 +24,16 @@
 //     bitpack.h - "Integer Compression" Binary Packing header file
 #ifndef BITPACK_H_
 #define BITPACK_H_
+#if defined(_MSC_VER) && _MSC_VER < 1600
+#include "vs/stdint.h"
+#else 
+#include <stdint.h>
+#endif
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stdint.h>
-#include <stddef.h>
-
 //******************** Bit Packing High Level API - n unlimited ***************************************************
 size_t bitnpack8(     uint8_t  *__restrict in, size_t n, unsigned char *__restrict out); 
 size_t bitnpack16(    uint16_t *__restrict in, size_t n, unsigned char *__restrict out); 
@@ -117,6 +120,8 @@ unsigned char *bitfpack128v32( unsigned          *__restrict in, unsigned n, uns
 unsigned char *bitf1pack128v32(unsigned          *__restrict in, unsigned n, unsigned char *__restrict out, unsigned start, unsigned b);
 unsigned char *bitzpack128v32( unsigned          *__restrict in, unsigned n, unsigned char *__restrict out, unsigned start, unsigned b);
 
+//unsigned char *bitpack256w32(  unsigned          *__restrict in, unsigned n, unsigned char *__restrict out				  , unsigned b);
+
 unsigned char *bitpack256v32(  unsigned          *__restrict in, unsigned n, unsigned char *__restrict out				  , unsigned b);
 unsigned char *bitdpack256v32( unsigned          *__restrict in, unsigned n, unsigned char *__restrict out, unsigned start, unsigned b);
 unsigned char *bitd1pack256v32(unsigned          *__restrict in, unsigned n, unsigned char *__restrict out, unsigned start, unsigned b);
@@ -135,7 +140,7 @@ unsigned char *bitunpack64( const unsigned char *__restrict in, unsigned n, uint
 
 // ---------------- Direct Access to a single packed integer array entry --------------------------------------------------------------
   #ifndef NTURBOPFOR_DAC
-    #if __AVX2__
+    #if defined(__AVX2__) && defined(AVX2_ON)
 #include <immintrin.h>
 #define bzhi64(_u_, _b_) _bzhi_u64(_u_, _b_)
 #define bzhi32(_u_, _b_) _bzhi_u32(_u_, _b_)
@@ -205,6 +210,8 @@ unsigned char *bitd1unpack128v32(const unsigned char *__restrict in, unsigned n,
 unsigned char *bitfunpack128v32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b); 
 unsigned char *bitf1unpack128v32(const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b);
 
+//unsigned char *bitunpack256w32(  const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b);
+
 unsigned char *bitunpack256v32(  const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b);
 unsigned char *bitzunpack256v32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b);
 unsigned char *bitdunpack256v32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b); 
@@ -225,6 +232,8 @@ unsigned char *_bitd1unpack128v32(const unsigned char *__restrict in, unsigned n
 unsigned char *_bitunpack128h32(  const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b, unsigned *__restrict pex, unsigned char *bb);
 unsigned char *_bitdunpack128h32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b, unsigned *__restrict pex, unsigned char *bb);
 unsigned char *_bitd1unpack128h32(const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b, unsigned *__restrict pex, unsigned char *bb);
+
+//unsigned char *_bitunpack256w32(  const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b, unsigned *__restrict pex, unsigned char *bb);
 
 unsigned char *_bitunpack256v32(  const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b, unsigned *__restrict pex, unsigned char *bb);
 unsigned char *_bitdunpack256v32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned start, unsigned b, unsigned *__restrict pex, unsigned char *bb);

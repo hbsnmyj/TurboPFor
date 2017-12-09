@@ -30,11 +30,7 @@
       #endif
 
 	  #if C_QMX
-  //case P_QMX:  { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); unsigned char *q = qmx_enc(pa, n, out+4); *(unsigned *)out = q - (out+4); return q; }
-    case P_QMX:  { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); ANT_compress_qmx    qmx; unsigned r=qmx.compress(out+4, outsize, (uint32_t *)pa, (uint64_t)n); ctou32(out)=r; return out+4+r; }
-    case P_QMX2: { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); ANT_compress_qmx_v2 qmx; unsigned r=qmx.compress(out+4, outsize, (uint32_t *)pa, (uint64_t)n); ctou32(out)=r; return out+4+r; }
-    case P_QMX3: { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); ANT_compress_qmx_v3 qmx; unsigned r=qmx.compress(out+4, outsize, (uint32_t *)pa, (uint64_t)n); ctou32(out)=r; return out+4+r; }
-    case P_QMX4: { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); ANT_compress_qmx_v4 qmx; unsigned r=qmx.compress(out+4, outsize, (uint32_t *)pa, (uint64_t)n); ctou32(out)=r; return out+4+r; }	 
+    case P_QMX:  { bitdienc32( in+1, --n, pa, in[0], mdelta); vbxput32(out, in[0]); JASS::compress_integer_qmx_improved qmx; if(n) { unsigned r=qmx.encode(out+4, outsize, (uint32_t *)pa, n); ctou32(out) = r; return out+4+r; } return out; }
 	  #endif  
 
       #if C_SIMDCOMP				  
@@ -73,8 +69,8 @@
     case LZ4_BIT:     bitdienc32(in, n, (unsigned *)out, -mdelta, mdelta); BITSHUFFLE((unsigned char *)out, _n, sbuf,lev); return out + LZ4_compress((char *)sbuf, (char *)out, _n);
         #endif
     case LZ4_  : 	  return out + LZ4_compress((char *)in, (char *)out, _n);
-    case LZ4_NIBBLE:{ bitdienc32(in, n, (unsigned *)out, -mdelta, in); tp4enc((unsigned char *)out, _n, sbuf,lev); return out + LZ4_compress((char *)sbuf, (char *)out, _n); } 
-    case LZ4_BYTE:  { bitdienc32(in, n, (unsigned *)out, -mdelta, mdelta); tpenc( (unsigned char *)out, _n, sbuf,lev); return out + LZ4_compress((char *)sbuf, (char *)out, _n); }
+    case LZ4_NIBBLE:{ bitdienc32(in, n, (uint32_t *)out, -mdelta, mdelta); tp4enc((unsigned char *)out, _n, sbuf,lev); return out + LZ4_compress((char *)sbuf, (char *)out, _n); } 
+    case LZ4_BYTE:  { bitdienc32(in, n, (uint32_t *)out, -mdelta, mdelta); tpenc( (unsigned char *)out, _n, sbuf,lev); return out + LZ4_compress((char *)sbuf, (char *)out, _n); }
       #endif
 	    
       #if C_ZLIB

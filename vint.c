@@ -25,6 +25,9 @@
   #ifndef USIZE
 #include <stdio.h>
 #include <string.h>
+#pragma warning( disable : 4005) 
+#pragma warning( disable : 4090) 
+#pragma warning( disable : 4068) 
 
 #include "conf.h"
 #include "vint.h"
@@ -200,8 +203,9 @@ unsigned TEMPLATE2(vbzgeteq, USIZE)(unsigned char **__restrict in, unsigned n, u
   #endif
 
 unsigned char *TEMPLATE2(VBDENC, USIZE)(uint_t *__restrict in, unsigned n, unsigned char *__restrict out, uint_t start) {
-  unsigned char *op = out; if(!n) return out;
+  unsigned char *op = out; 
   uint_t *ip, b=0,v; 
+  if(!n) return out;
   #define VBDE { v = (*ip)-start-VDELTA; start = *ip++; TEMPLATE2(_vbput, USIZE)(op, v, ;); b |= (v /*^ x*/); }
   for(ip = in; ip != in + (n&~(UN-1)); ) { VBDE;VBDE;VBDE;VBDE; 
 	  #if UN > 4

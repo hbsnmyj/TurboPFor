@@ -7,19 +7,16 @@ TurboPFor: Fastest Integer Compression [![Build Status](https://travis-ci.org/po
   * No other "Integer Compression" compress/decompress faster
   * :sparkles: Direct Access, **integrated** (SIMD/AVX2) FOR/delta/Zigzag for sorted/unsorted arrays
 * **For/PFor/PForDelta**
-  * **Novel** **"TurboPFor"** (PFor/PForDelta) scheme w./ **direct access**.
+  * **Novel TurboPFor** (PFor/PForDelta) scheme w./ **direct access** + **SIMD/AVX2**.
   * Outstanding compression/speed. More efficient than **ANY** other fast "integer compression" scheme.
   * Compress 70 times faster and decompress up to 4 times faster than OptPFD
-  * :new: **TurboPFor AVX2, now 50%! more faster!!!!**
   * :new: **TurboPFor Hybrid, better compression and more faster**
 * **Bit Packing**
-  * :sparkles: Fastest and most efficient **"SIMD Bit Packing"**
-  * :new: TurboPack AVX2 more faster. **Decoding 10 Billions intergers/seconds (40Gb/s)**
-  * :new: more faster. Scalar **"Bit Packing"** decoding as fast as SIMD-Packing in realistic (No "pure cache") scenarios
+  * :sparkles: Fastest and most efficient **"SIMD Bit Packing"** **10 Billions integers/sec (40Gb/s)**
+  * Scalar **"Bit Packing"** decoding as fast as SIMD-Packing in realistic (No "pure cache") scenarios
   * **Direct/Random Access** : Access any single bit packed entry with **zero decompression**
 * **Variable byte**
   * :sparkles: Scalar **"Variable Byte"** faster than **ANY** other (incl. SIMD) implementation
-  * :new: **new scheme : better compression and 30% faster**
 * **Simple family**
   * :sparkles: **Novel** **"Variable Simple"** (incl. **RLE**) faster and more efficient than simple16, simple-8b
 * **Elias fano**
@@ -35,7 +32,7 @@ TurboPFor: Fastest Integer Compression [![Build Status](https://travis-ci.org/po
   * **Novel** Implicit skips with zero extra overhead
   * **Novel** Efficient **Bidirectional** Inverted Index Architecture (forward/backwards traversal) incl. "integer compression".
   * more than **2000! queries per second** on GOV2 dataset (25 millions documents) on a **SINGLE** core
-  * :sparkles: Revolutionary Parallel Query Processing on Multicores w/ more than **7000!!! queries/sec** on a simple quad core PC.<br>
+  * :sparkles: Revolutionary Parallel Query Processing on Multicores **> 7000!!! queries/sec** on a simple quad core PC.<br>
    **...forget** ~~Map Reduce, Hadoop, multi-node clusters,~~ ...
    
 ### Integer Compression Benchmark:
@@ -45,7 +42,7 @@ TurboPFor: Fastest Integer Compression [![Build Status](https://travis-ci.org/po
 ##### - Synthetic data:
  - Generate and test (zipfian) skewed distribution (100.000.000 integers, Block size=128/256)<br>
    Note: Unlike general purpose compression, a small fixed size (ex. 128 integers) is in general used in "integer compression".
-   Large blocks involved, while processing queries (inverted index, search engines, databases, graphs, in memory computing,...) need to be entirely decoded
+   Large blocks involved, while processing queries (inverted index, search engines, databases, graphs, in memory computing,...) need to be entirely decoded.
 
         ./icbench -a1.5 -m0 -M255 -n100M ZIPF
 	
@@ -54,12 +51,13 @@ TurboPFor: Fastest Integer Compression [![Build Status](https://travis-ci.org/po
 |62939886| 15.7| 5.04|**397**|**2311**|**TurboPFor256**|
 |63392759| 15.8| 5.07|330|1608|**TurboPFor**|
 |63392801| 15.8| 5.07|332|231|**TurboPForDA**|
-|65060504| 16.3| 5.20|15|687|[FP.SIMDOptPFor](#FastPFor)|
-|65359916|16.3| 5.23| 8| 609|PC.OptPFD|
-|73477088|18.4| 5.88|102| 621|PC.Simple16|
-|73481096| 18.4| 5.88|156|2187|[FP.SimdFastPFor](#FastPFor) 64k *|
+|65060504| 16.3| 5.20|15|687|[FP_SIMDOptPFor](#FastPFor)|
+|65359916|16.3| 5.23| 8| 609|PC_OptPFD|
+|73477088|18.4| 5.88|102| 621|PC_Simple16|
+|73481096| 18.4| 5.88|156|2187|[FP_SimdFastPFor](#FastPFor) 64Ki *|
 |76345136| 19.1| 6.11|245|653|**VSimple**|
-|91956582| 25.5| 8.15|65|2141|[QMX](#QMX) 64k *|
+|91947533| 23.0| 7.36|71|2934|[QMX](#QMX) 64k *|
+|93285864| 23.3| 7.46|392|2558|[FP_GroupSimple](#FastPFor) 64Ki *|
 |95915096|24.0| 7.67|  212|958|Simple-8b|
 |99910930| 25.0| 7.99|**3494**|**2968**|**TurboPackV**|
 |99910930| 25.0| 7.99|2367|2351|**TurboPack**|
@@ -67,20 +65,20 @@ TurboPFor: Fastest Integer Compression [![Build Status](https://travis-ci.org/po
 |100332929| 25.1| 8.03|**3580**|**2998**|**TurboPack256V**|
 |101015650| 25.3| 8.08|2380|2371|**TurboVByte**|
 |102074663| 25.5| 8.17|1428|1979|[MaskedVByte](#MaskedVByte)|
-|102074663| 25.5| 8.17|565|1052|[PC.Vbyte](#PolyCom)|
-|102083036| 25.5| 8.17|1300|1067|[FP.VByte](#FastPFor)|
+|102074663| 25.5| 8.17|565|1052|[PC_Vbyte](#PolyCom)|
+|102083036| 25.5| 8.17|1300|1067|[FP_VByte](#FastPFor)|
 |112500000| 28.1| 9.00|382|**3035**|[VarintG8IU](#VarintG8IU)|
-|125000000| 31.2|10.00|1111|2948|[StreamVbyte](#StreamVByte)|
+|125000000| 31.2|10.00|1197|2822|[StreamVbyte](#StreamVByte)|
 |400000000|	100.00|	32.00| 2240|2237|Copy|
 |         |      |     |   N/A  | N/A   |EliasFano|
 
-(*) codec efficient only for large block size
+(*) codecs inefficient for small block sizes are tested with 64Ki integers/block.
 
-MI/s: 1.000.000 integers/second. **1000 MI/s = 4 GB/s**<br> 
-**#BOLD** = pareto frontier.<br>
-FP=FastPFor SC:simdcomp PC:Polycom<br>
-TurboPForDA,TurboForDA: Direct Access is normally used when accessing few individual values.
-
+- MI/s: 1.000.000 integers/second. **1000 MI/s = 4 GB/s**<br> 
+- **#BOLD** = pareto frontier.<br>
+- FP=FastPFor SC:simdcomp PC:Polycom<br>
+- TurboPForDA,TurboForDA: Direct Access is normally used when accessing few individual values.<br>
+- Eliasfano can be directly used only for increasing sequences
 ------------------------------------------------------------------------
 ##### - Data files:
  - gov2.sorted from [DocId data set](#DocId data set) Block size=128/Delta coding
@@ -96,18 +94,19 @@ TurboPForDA,TurboForDA: Direct Access is normally used when accessing few indivi
 | 3.350.717.959| 14.0| 4.48|**365**|**1752**|**TurboPFor256**| 
 | 3.501.671.314| 14.6| 4.68| 314| 710|**VSimple**|
 | 3.768.146.467| 15.8| 5.04|**807**| 913|**EliasFanoV**|
-| 3.822.161.885| 16.0| 5.11| 143| 611|PC.Simple16|
+| 3.822.161.885| 16.0| 5.11| 143| 611|PC_Simple16|
 | 4.521.326.518| 18.9| 6.05| 209| 824|Simple-8b|
 | 4.649.671.427| 19.4| 6.22|771|962|**TurboVbyte**|
 | 4.955.740.045| 20.7| 6.63|**1766**|**2567**|**TurboPackV**|
 | 4.955.740.045| 20.7| 6.63|1431|2005|**TurboPack**|
-| 5.205.324.760|21.8| 6.96|1738|2372|SC.SIMDPack128|
+| 5.205.324.760|21.8| 6.96|1738|2372|SC_SIMDPack128|
 | 5.393.769.503| 22.5| 7.21|**2261**|**2715**|**TurboPackV256**|
 | 6.221.886.390| 26.0| 8.32|1667|1738|**TurboFor**|
 | 6.221.886.390| 26.0| 8.32|1661| 565|**TurboForDA**|
-| 6.699.519.000| 28.0| 8.96| 472| 495|FP.Vbyte|
+| 6.699.519.000| 28.0| 8.96| 472| 495|FP_Vbyte|
 | 6.700.989.563| 28.0| 8.96| 685| 846|MaskedVByte|
 | 7.622.896.878| 31.9|10.20| 209|1198|VarintG8IU|
+| 8.060.125.035| 33.7|11.50| 884|2171|Streamvbyte|
 | 8.594.342.216| 35.9|11.50|1307|1594|libfor|
 |23.918.861.764|100.0|32.00|1456|1481|Copy|
 
@@ -118,6 +117,7 @@ Block size: 64Ki = 256k bytes. Ki=1024 Integers
 | 3.164.940.562| 13.2|**4.23**|**336**|**1501**|**TurboPFor 64Ki**|
 | 3.273.213.464| 13.7| 4.38|**374**|**1752**|**TurboPFor256 64Ki**|
 | 3.965.982.954| 16.6| 5.30|**380**| 613|[lz4](#lz4)+DT 64Ki|
+| 4.234.154.427| 17.7| 5.66| 109| 1418|qmx 64Ki| 
 | 6.074.995.117| 25.4| 8.13| 494| 729|[blosc_lz4](#blosc) 64Ki| 
 | 8.773.150.644| 36.7|11.74| 637|1301|blosc_lz 64Ki|
 
@@ -177,17 +177,22 @@ using [900.000 multicore servers](https://www.cloudyn.com/blog/10-facts-didnt-kn
 - Recent "integer compression" GOV2 experiments (best paper at ECIR 2014) [On Inverted Index Compression for Search Engine Efficiency](http://www.dcs.gla.ac.uk/~craigm/publications/catena14compression.pdf) using 8-core Xeon PC are reporting 1.2 seconds per query (for 1.000 Top-k docids).
 
 ### Compile:
+		git clone --recursive git://github.com/powturbo/TurboPFor.git
+		cd TurboPFor
 
-  		git clone --recursive git://github.com/powturbo/TurboPFor.git
-        cd TurboPFor
-  		make
+###### Linux, Windows (MingW), Clang,... 		
+		make
+		or
+		make AVX2=1
 
-  		or
+		Disable external libs
+		make NCODEC1=1 NCODEC2=1 
 
-  		make AVX2=1
+		Disable SIMD
+		make NSIMD=1
 
-        Minimum build w/ TurboPFor scalar functions
-        make NSIMD=1
+###### Windows visual c++
+		nmake NCODEC1=1 NCODEC2=1 /f makefile.vs	
 
 ### Testing:
 ##### - Synthetic data (use ZIPF parameter):
@@ -346,7 +351,8 @@ header files to use with documentation:<br />
 ###### OS/Compiler (64 bits):
 - Linux: GNU GCC (>=4.6)
 - clang (>=3.2)
-- Windows: MinGW-w64 (no parallel query processing)
+- Windows: MinGW-w64 (no parallel query processing demo app)
+- Visual c++ (VS2008-VS2017)
 
 ###### Multithreading:
 - All TurboPFor integer compression functions are thread safe
@@ -354,7 +360,7 @@ header files to use with documentation:<br />
 ### References:
 
 * **Benchmark references:**
-  * <a name="FastPFor"></a>[FastPFor](https://github.com/lemire/FastPFor) + [Simdcomp](https://github.com/lemire/simdcomp): SIMDPack FPF, Vbyte FPF, VarintG8IU, StreamVbyte
+  * <a name="FastPFor"></a>[FastPFor](https://github.com/lemire/FastPFor) + [Simdcomp](https://github.com/lemire/simdcomp): SIMDPack FPF, Vbyte FPF, VarintG8IU, StreamVbyte, GroupSimple
   * <a name="OptPFD"></a><a name="Simple16"></a>[Optimized Pfor-delta compression code](http://jinruhe.com): OptPFD/OptP4, Simple16 (limited to 28 bits integers)
   * <a name="MaskedVByte"></a>[MaskedVByte](http://maskedvbyte.org/). See also: [Vectorized VByte Decoding](http://engineering.indeed.com/blog/2015/03/vectorized-vbyte-decoding-high-performance-vector-instructions/)
   * <a name="Streamvbyte"></a>[Streamvbyte](https://github.com/lemire/streamvbyte). 
@@ -377,5 +383,5 @@ header files to use with documentation:<br />
   * [Small Polygon Compression](https://arxiv.org/abs/1509.05505) + [Poster](http://abhinavjauhri.me/publications/dcc_poster_2016.pdf) + [code](https://github.com/ajauhri/bignum_compression)
   * [Parallel Graph Analysis (Lecture 18)](http://www.cs.rpi.edu/~slotag/classes/FA16/) + [code](http://www.cs.rpi.edu/~slotag/classes/FA16/handson/lec18-comp2.cpp)
 
-Last update:  19 MAR 2017
+Last update:  18 Oct 2017
 

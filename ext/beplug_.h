@@ -11,7 +11,13 @@
 #include "FastPFor/headers/simdfastpfor.h"
 #include "FastPFor/headers/optpfor.h"
 #include "FastPFor/headers/simdoptpfor.h"
-//#include "ext/FastPFor/headers/compositecodec.h"
+#ifndef min
+#define min(x,y) (((x)<(y)) ? (x) : (y))
+#endif
+#define _mm_store_si128 _mm_storeu_si128
+#define _mm_load_si128 _mm_loadu_si128
+#include "FastPFor/headers/simdgroupsimple.h"
+#undef min
   #endif
   
   #if C_SIMPLE8B
@@ -46,10 +52,7 @@ unsigned char *for_selectx( unsigned char *__restrict in, unsigned n, unsigned *
   #endif
 
   #if C_QMX
-#include "bench_/bench/compress_qmx.h" 
-#include "bench_/bench/compress_qmx_v2.h"
-#include "bench_/bench/compress_qmx_v3.h"
-#include "bench_/bench/compress_qmx_v4.h"
+#include "JASSv2/source/compress_integer_qmx_improved.h" 
   #endif
   
   #if C_ZLIB

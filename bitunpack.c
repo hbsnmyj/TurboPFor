@@ -22,12 +22,15 @@
     - email    : powturbo [_AT_] gmail [_DOT_] com
 **/  
 //   "Integer Compression" Bit Packing 
-#include <stdint.h> 
 #include "conf.h" 
 #include "bitutil.h" 
 #include "bitpack.h"
 #include "vint.h"
 #define PAD8(_x_) (((_x_)+7)/8)
+
+#pragma warning( disable : 4005) 
+#pragma warning( disable : 4090) 
+#pragma warning( disable : 4068) 
 
 #pragma GCC push_options
 #pragma GCC optimize ("align-functions=16")
@@ -43,8 +46,10 @@ typedef unsigned char *(*BITUNPACK_D32)(const unsigned char *__restrict in, unsi
 typedef unsigned char *(*BITUNPACK_F64)(const unsigned char *__restrict in, unsigned n, uint64_t *__restrict out);
 typedef unsigned char *(*BITUNPACK_D64)(const unsigned char *__restrict in, unsigned n, uint64_t *__restrict out, uint64_t start);
    
-#define PREFETCH(_ip_) __builtin_prefetch(_ip_+512)//#define PREFETCH(ip)
-  
+#define PREFETCH(_ip_) __builtin_prefetch(_ip_+512,0)//#define PREFETCH(ip)
+
+#if !defined(SSE2_ON) && !defined(AVX2_ON)
+
   #if 0
 #define OP(_op_, _x_) *_op_++
 #define OPX(_op_)  
@@ -84,21 +89,21 @@ typedef unsigned char *(*BITUNPACK_D64)(const unsigned char *__restrict in, unsi
 
 #define BITNUNPACK(in, n, out, csize, usize) {\
   unsigned char *ip = in;\
-  for(op = out,out+=n; op < out;) { unsigned oplen = out - op; if(oplen > csize) oplen = csize;		__builtin_prefetch(in+512);\
-    unsigned b = *ip++; ip = TEMPLATE2(bitunpacka, usize)[b](ip, csize, op);\
-	op += csize;\
+  for(op = out,out+=n; op < out;) { unsigned oplen = out - op,b; if(oplen > csize) oplen = csize;		__builtin_prefetch(in+512,0);\
+    b = *ip++; ip = TEMPLATE2(bitunpacka, usize)[b](ip, oplen, op);\
+	op += oplen;\
   } \
   return ip - in;\
 }
 
 #define BITNDUNPACK(in, n, out, csize, usize, _bitunpacka_) {\
-  if(!n) return 0;\
   unsigned char *ip = in;\
+  if(!n) return 0;\
   TEMPLATE2(vbxget, usize)(ip, start); \
   *out++ = start;\
-  for(--n,op = out,out+=n; op < out;) { unsigned oplen = out - op; if(oplen > csize) oplen = csize;		__builtin_prefetch(ip+512);\
-    unsigned b = *ip++; ip = TEMPLATE2(_bitunpacka_, usize)[b](ip, csize, op, start);\
-	op += csize;\
+  for(--n,op = out,out+=n; op < out;) { unsigned oplen = out - op,b; if(oplen > csize) oplen = csize;		PREFETCH(ip+512);\
+    b = *ip++; ip = TEMPLATE2(_bitunpacka_, usize)[b](ip, oplen, op, start);\
+	op += oplen;\
     start = op[-1];\
   } return ip - in;\
 }
@@ -121,9 +126,9 @@ size_t bitnzunpack8(  unsigned char *__restrict in, size_t n, uint8_t  *__restri
 size_t bitnzunpack16( unsigned char *__restrict in, size_t n, uint16_t *__restrict out) { uint16_t *op,start; BITNDUNPACK(in, n, out, 128, 16, bitzunpacka); } 
 size_t bitnzunpack32( unsigned char *__restrict in, size_t n, uint32_t *__restrict out) { uint32_t *op,start; BITNDUNPACK(in, n, out, 128, 32, bitzunpacka); } 
 size_t bitnzunpack64( unsigned char *__restrict in, size_t n, uint64_t *__restrict out) { uint64_t *op,start; BITNDUNPACK(in, n, out, 128, 64, bitzunpacka); } 
+#endif
 
-//--------------------------------------------------------------------------------------------------------------------------------------
-#ifdef __SSE2__
+#if defined(__SSE2__) && defined(SSE2_ON)  
 #include <emmintrin.h>
 
 #define VSTO( _op_, _i_, ov, _parm_) _mm_storeu_si128(_op_++, ov)
@@ -172,6 +177,13 @@ unsigned char *bitunpack128v32( const unsigned char *__restrict in, unsigned n, 
   BITUNPACK128V32(in, b, out, sv);
   return (unsigned char *)ip;
 }
+unsigned char *bitunpack256w32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b) {
+  const unsigned char *_in=in; unsigned *_out=out;
+  __m128i sv; 
+  BITUNPACK128V32(in, b, out, sv); out = _out+128; in=_in+PAD8(128*b);
+  BITUNPACK128V32(in, b, out, sv); 
+  return (unsigned char *)_in+PAD8(256*b);
+}
 #undef VSTO
 #undef VSTO0
 #undef BITUNPACK0
@@ -179,7 +191,7 @@ unsigned char *bitunpack128v32( const unsigned char *__restrict in, unsigned n, 
 //------------------------------SSE -----------------------------------------------
   #ifdef __SSSE3__
 #include <tmmintrin.h>
-static ALIGNED(char, shuffles[16][16], 16) = {
+static char shuffles[16][16] = {
   #define _ 0x80
         { _,_,_,_, _,_,_,_, _,_, _, _,  _, _, _,_  },
         { 0,1,2,3, _,_,_,_, _,_, _, _,  _, _, _,_  },
@@ -199,9 +211,10 @@ static ALIGNED(char, shuffles[16][16], 16) = {
         { 0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15 },
   #undef _
 };
-
-#define VSTO( _op_, _i_, _ov_, _parm_) if(!((_i_) & 1)) m = (*bb) & 0xf;else m = (*bb++) >> 4; _mm_storeu_si128(_op_++, _mm_add_epi32(_ov_, _mm_shuffle_epi8(_mm_slli_epi32(_mm_loadu_si128((__m128i*)pex), b), _mm_load_si128((__m128i*)shuffles[m]) ) )); pex += popcnt32(m)
-#define VSTO0(_op_, _i_, ov, _parm_)   if(!((_i_) & 1)) m = (*bb) & 0xf;else m = (*bb++) >> 4; _mm_storeu_si128(_op_++,                     _mm_shuffle_epi8(               _mm_loadu_si128((__m128i*)pex),     _mm_load_si128((__m128i*)shuffles[m]) ) );  pex += popcnt32(m)
+  #endif
+  
+#define VSTO( _op_, _i_, _ov_, _parm_) if((_i_) & 1) m = (*bb++) >> 4; else m = (*bb) & 0xf; _mm_storeu_si128(_op_++, _mm_add_epi32(_ov_, _mm_shuffle_epi8(_mm_slli_epi32(_mm_loadu_si128((__m128i*)pex), b), _mm_load_si128((__m128i*)shuffles[m]) ) )); pex += popcnt32(m)
+#define VSTO0(_op_, _i_, ov, _parm_)   if((_i_) & 1) m = (*bb++) >> 4; else m = (*bb) & 0xf; _mm_storeu_si128(_op_++,                     _mm_shuffle_epi8(               _mm_loadu_si128((__m128i*)pex),     _mm_load_si128((__m128i*)shuffles[m]) ) );  pex += popcnt32(m)
 #define BITUNPACK0(_parm_) //_parm_ = _mm_setzero_si128()
 #include "bitunpack_.h"
 
@@ -211,10 +224,17 @@ unsigned char *_bitunpack128v32( const unsigned char *__restrict in, unsigned n,
   BITUNPACK128V32(in, b, out, sv);
   return (unsigned char *)ip; 
 }
+unsigned char *_bitunpack256w32( const unsigned char *__restrict in, unsigned n, unsigned *__restrict out, unsigned b, unsigned *__restrict pex, unsigned char *bb) {
+  const unsigned char *_in=in; unsigned *_out=out;
+  unsigned m;
+  __m128i sv; 
+  BITUNPACK128V32(in, b, out, sv); out = _out+128; in=_in+PAD8(128*b);
+  BITUNPACK128V32(in, b, out, sv); 
+  return (unsigned char *)_in+PAD8(256*b);
+}
 #undef VSTO
 #undef VSTO0
 #undef BITUNPACK0
-  #endif
 
 //-------------------------------------------------------------------
 #define VSTO0(_op_, _i_, ov, _parm_) _mm_storeu_si128(_op_++, _parm_)
@@ -250,7 +270,6 @@ unsigned char *bitfunpack128v32( const unsigned char *__restrict in, unsigned n,
 
 //---------------------------- SSE ----------------------------------------------
   #ifdef __SSSE3__
-
 #define VEXP(_i_, _ov_)         if(!((_i_) & 1)) m = (*bb) & 0xf;else m = (*bb++) >> 4; _ov_ = _mm_add_epi32(_ov_, _mm_shuffle_epi8(_mm_slli_epi32(_mm_loadu_si128((__m128i*)pex), b), _mm_load_si128((__m128i*)shuffles[m]) ) ); pex += popcnt32(m)
 #define VSTO( _op_, _i_, _ov_, _sv_)   VEXP( _i_, _ov_); SCAN128x32(_ov_,_sv_); _mm_storeu_si128(_op_++, _sv_);
 #define VEXP0(_i_, _ov_)        if(!((_i_) & 1)) m = (*bb) & 0xf;else m = (*bb++) >> 4; _ov_ = _mm_shuffle_epi8(_mm_loadu_si128((__m128i*)pex),_mm_load_si128((__m128i*)shuffles[m]) ); pex += popcnt32(m)
@@ -319,9 +338,8 @@ unsigned char *_bitd1unpack128v32( const unsigned char *__restrict in, unsigned 
 }
   #endif
 #endif // __SSE2__
-
-//----------------------------------- AVX2 -----------------------------------------------
-  #ifdef __AVX2__
+ 
+#if defined(__AVX2__) && defined(AVX2_ON)  
 #include <immintrin.h>
 
   #ifdef __AVX512F__

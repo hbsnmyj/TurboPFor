@@ -30,9 +30,8 @@
 #include <stdio.h>
 #include <math.h> 
 #include <time.h>
-#include <getopt.h>
 #include <sys/stat.h>
-#include <stdint.h>
+#include "conf.h"
 
 #include "plugins.h"
 
@@ -95,6 +94,7 @@ enum {
   TB_FORDA,  	
   TB_BP,		
   TB_BPN,		
+  TB_BPDA,		
   TB_PDI,		
   TB_VBYTE,    
   TB_VSIMPLE,
@@ -136,6 +136,7 @@ enum {
   FP_OPTPFOR,
   FP_SIMPLE8BRLE,
   FP_SIMDPACK,
+  FP_GROUPSIMPLE,
 #define C_LIBFOR		CODEC1
   LF_FOR,
   LF_FORX,
@@ -153,15 +154,23 @@ enum {
   LZ4_NIBBLEX,   
   LZ4_BYTE,
 //  LZ4_FP8,
+    #ifdef __SSSE3__
 #define C_MASKEDVBYTE   CODEC1		
   P_MASKEDVBYTE,
+    #else
+#define C_MASKEDVBYTE  0
+    #endif
 #define C_POLYCOM  		CODEC1		
   PC_OPTPFD,             			// compression too slow and limited to 28 bits. crashs on some lists
   PC_VBYTE,
   PC_RICE,							// incl. only as demo, crash on some lists
   PC_SIMPLE16,						// limited to 28 bits.
-#define C_QMX			CODEC1
-  P_QMX,P_QMX2,P_QMX3,P_QMX4,       // crash on gov2
+#if defined(QMX)
+#define C_QMX			CODEC1	
+#else
+#define C_QMX			0
+#endif
+  P_QMX,       			// crash on gov2
 #define C_SIMDCOMP		CODEC1
   SC_PACK,
   SC_SIMDPACK128,
@@ -172,8 +181,13 @@ enum {
   AM_SIMPLE8B,
 #define C_STREAMVBYTE   CODEC1
   P_STREAMVBYTE,
+  
+    #ifdef __SSSE3__
 #define C_VARINTG8IU    CODEC1
   P_VARINTG8IU,
+    #else
+#define C_VARINTG8IU  0
+    #endif  
   #ifdef ZLIB
 #define C_ZLIB			CODEC2
   #else
@@ -195,7 +209,9 @@ enum {
 };
 
 #define PAD8(_x_) 		( (((_x_)+8-1)/8) )  
+#if !defined(NCODEC1) && !defined(NCODEC2)
 #include "ext/beplug_.h" // external libs
+#endif
 
   #if C_TURBOPFOR  
 #include "vint.h"       
@@ -232,12 +248,12 @@ unsigned char *u32dec(unsigned *__restrict in, int n, unsigned *__restrict out) 
   }
   while(op < out+n) *op++ = *in++;
   return (unsigned char *)in;
-}  
-
-unsigned char *_bitunpackx32( unsigned char *__restrict in, unsigned n, unsigned *__restrict out           , unsigned b) { unsigned i,k=0; for(i=0; i < n; i++,k+=b ) *out++ = _bitgetx32(in, k, b); return in + PAD8(n*b); }
+}   
+ 
+unsigned char *_bitunpackx32( unsigned char *__restrict in, unsigned n, unsigned *__restrict out           , unsigned b) { unsigned i,k=0; for(i=0; i < n; i++,k+=b ) *out++ = _bitgetx16(in, k, b); return in + PAD8(n*b); }
 // direct access functions : included for demonstration only. Use the bulk functions instead, if you are decompressing most of the values
 unsigned char *bitf1unpackx32(unsigned char *__restrict in, unsigned n, unsigned *__restrict out, int start, unsigned b) { int i; for(i = 0; i < n; i++) out[i] = bitgetx32(in, i, b)+start+i+1; return in + PAD8(n*b); }
-unsigned char *bitfunpackx32( unsigned char *__restrict in, unsigned n, unsigned *__restrict out, int start, unsigned b) { int i; for(i = 0; i < n; i++) out[i] = bitgetx32(in, i, b)+start;     return in + PAD8(n*b); }
+unsigned char *bitfunpackx32( unsigned char *__restrict in, unsigned n, unsigned *__restrict out, int start, unsigned b) { int i; for(i = 0; i < n; i++) out[i] = bitgetx16(in, i, b)+start;     return in + PAD8(n*b); }
 
 //------------------------------------------------- plugins: codes+function -------------------------------------------------
 struct codecs codecs[] = {
@@ -250,7 +266,7 @@ struct codecs codecs[] = {
   { C_LZTURBO, 		"LzTurbo",				"https://sites.google.com/site/powturbo" },
   { C_MASKEDVBYTE,	"MaskedVbyte",			"http://maskedvbyte.org" },
   { C_POLYCOM,		"Polycom",				"https://github.com/encode84/bcm" }, 
-  { C_QMX, 			"QMX",					"https://bitbucket.org/andrewtrotman/bench" },
+  { C_QMX, 		"QMX",					"https://bitbucket.org/andrewtrotman/bench" },
   { C_SIMDCOMP, 	"simdcomp",				"https://github.com/lemire/simdcomp" },
   { C_SIMPLE8B,		"Simple-8b optimized",	"https://github.com/powturbo/TurboPFor" },
   { C_STREAMVBYTE,	"Streamvbyte",			"https://github.com/lemire/streamvbyte" },
@@ -272,6 +288,7 @@ struct plugs plugs[] = {
   { TB_FOR128V,		"TurboForV", 		C_TURBOPFOR,	BLK_V128,0,"","FOR (SIMD)" }, 
   { TB_FOR256V,		"TurboFor256V", 	C_TURBOPFOR,	BLK_V256,0,"","FOR (AVX2)" }, 
   { TB_FORDA, 		"TurboForDA", 		C_TURBOPFOR,	BLK_V128,0,"","FOR direct access" }, 
+  { TB_BPDA, 		"TurboPackDA", 		C_TURBOPFOR,	BLK_V128,0,"","Bit packing direct access" }, 
 
   { TB_BP,			"TurboPack", 		C_TURBOPFOR,	0,    	 0,"","Bit packing (scalar)" }, 
   { TB_BPN,			"TurboPackN", 		C_TURBOPFOR,	0,    	 0,"","Bit packing (scalar) large blocks" }, 
@@ -299,7 +316,9 @@ struct plugs plugs[] = {
   { TB_FPFFOR64,	"FP_FCM64", 		C_TURBOPFOR,	BLK_SIZE,0,"","Floating point PFOR (FCM)" }, 
   { TB_FPDFOR64,	"FP_DFCM64", 		C_TURBOPFOR,	BLK_SIZE,0,"","Floating point PFOR (DFCM)" }, 
   { TB_PF64,		"TurboPFor64", 		C_TURBOPFOR,	BLK_V128,0,"","PFOR 64" }, 
+    #if !defined(NCODEC1) && !defined(NCODEC2)
   #include "ext/beplugr_.h" // external libs
+    #endif
   { -1 }
 };
 
@@ -320,15 +339,17 @@ struct plugg plugg[] = {
 };
 
 #define PAD8(__x) (((__x)+7)/8)
-
 //---------------------------------------------- plugins --------------------------------------------------------
 #include "conf.h"  
-unsigned char sbuf[BLK_SIZE*2+64];
+unsigned char sbuf[BLK_SIZE*2+1024];
 
 int codini(size_t insize, int codec) {
   switch(codec) {
+      #if !defined(NCODEC1) && !defined(NCODEC2)
     #include "ext/beplugi_.c"
+      #endif
   }
+  return 0;
 }   
  
 void codexit(int codec) {} 
@@ -341,7 +362,7 @@ unsigned char *codcomps(unsigned char *_in, unsigned _n, unsigned char *out, int
     case TB_VSIMPLE: x = *in++; bitdienc32( in, --n, pa, x, mdelta);
 	                                 vbxput32(out, x);			return vsenc32(         pa, n, out);
     case TB_VBYTE:   x = *in++; --n; vbxput32(out, x);			return mdelta?vbd1enc32(   in, n, out, x   ):vbdenc32(     in, n, out, x);
-    case TB_EF:      x = *in++; --n; vbxput32(out, x);			return mdelta?efano1enc32( in, n, out, x+1 ):efanoenc32(   in, n, out, x);
+    case TB_EF:      x = *in++; --n; vbxput32(out, x); 			return mdelta?efano1enc32( in, n, out, x+1 ):efanoenc32(   in, n, out, x);
 	
     case TB_PFDA:    x = *in++; --n; vbxput32(out, x); DELTR(in,n,x,mdelta,pa); 
 																return p4encx32(pa,n,out);
@@ -356,7 +377,7 @@ unsigned char *codcomps(unsigned char *_in, unsigned _n, unsigned char *out, int
       else {    b = bitd32( in, n, x);  *out++=b;				return bitdpack32( in, n, out, x, b); } 
     case TB_BPN:    											return out+(mdelta?bitnd1pack32(in, n, out):bitndpack32( in, n, out));
 	
-    case TB_PDI: { x = *in++; unsigned mdelta = bitdi32(in, --n, x); if(mdelta>(1<<27)) mdelta=1<<27; bitdienc32(in, n, pa, x, mdelta); 
+    case TB_PDI: { unsigned mdelta; x = *in++; mdelta = bitdi32(in, --n, x); if(mdelta>(1<<27)) mdelta=1<<27; bitdienc32(in, n, pa, x, mdelta); 
 	    mdelta=mdelta<<5|(x&31); x>>=5; vbxput32(out, x); vbput32(out, mdelta); return p4enc32(pa, n, out);
 	  }
 
@@ -375,7 +396,7 @@ unsigned char *codcomps(unsigned char *_in, unsigned _n, unsigned char *out, int
     case TB_BP128V:  x = *in++; --n; vbxput32(out, x); 
       if(mdelta) { b = bitd132(in, n, x);  *out++=b;				return n == 128?bitd1pack128v32(in, n, out, x, b):bitd1pack32(  in, n, out, x, b); }
       else {    b = bitd32( in, n, x); 	*out++=b;				return n == 128?bitdpack128v32( in, n, out, x, b):bitdpack32(   in, n, out, x, b); }
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_FOR256V: x = *in++; --n; vbxput32(out, x); 
       if(mdelta) { b = bitf132(in, n, x);  *out++=b; 				return n == 256?bitf1pack256v32(in, n, out, x, b):bitf1pack32(  in, n, out, x, b); }
       else {    b = bitf32( in, n, x);  *out++=b;				return n == 256?bitfpack256v32( in, n, out, x, b):bitfpack32(   in, n, out, x, b); }
@@ -399,7 +420,9 @@ unsigned char *codcomps(unsigned char *_in, unsigned _n, unsigned char *out, int
     case TB_DELTA32:  bitdienc32(in, n, (unsigned *)out,  -mdelta, mdelta); return out + _n; 
     case TB_XOR32:    bitxenc32( in, n, (unsigned *)out,  -mdelta);         return out + _n; 
       #endif
+      #if !defined(NCODEC1) && !defined(NCODEC2)
     #include "ext/beplugcs_.c"
+      #endif
   }
   return out;
 } 
@@ -419,7 +442,7 @@ unsigned char *coddecomps(unsigned char *in, unsigned _n, unsigned char *_out, i
     case TB_BP:     vbxget32(in, x);*out++ = x; --n; b = *in++; return mdelta?bitd1unpack32(     in, n, out, x, b):bitdunpack32(    in, n, out, x, b);
     case TB_BPN:               						  		    return in+(mdelta?bitnd1unpack32(in, n, out      ):bitndunpack32(   in, n, out));
 	
-    case TB_PDI: { vbxget32(in, x); uint32_t mdelta; vbget32(in, mdelta); x = x << 5 | (mdelta & 31); *out++ = x; --n; in = p4dec32(in, n, out); bitdidec32(out, n, x, mdelta>>5); break; }
+    case TB_PDI: { uint32_t mdelta; vbxget32(in, x);  vbget32(in, mdelta); x = x << 5 | (mdelta & 31); *out++ = x; --n; in = p4dec32(in, n, out); bitdidec32(out, n, x, mdelta>>5); break; }
 	  #if C_TURBOPFORV
     case TB_FOR128V:vbxget32(in, x);*out++ = x; --n; b = *in++;
 	  if(mdelta) {                                      	        return n==128?bitf1unpack128v32( in, n, out, x, b):bitf1unpack32(   in, n, out, x, b); } 
@@ -434,7 +457,7 @@ unsigned char *coddecomps(unsigned char *in, unsigned _n, unsigned char *_out, i
     case TB_BP128V: vbxget32(in, x);*out++ = x; --n; b = *in++;
 	  if(mdelta) {                                      	    	return n==128?bitd1unpack128v32(in, n, out, x, b):bitd1unpack32( in, n, out, x, b); } 
       else {                                              		return n==128?bitdunpack128v32( in, n, out, x, b):bitdunpack32(  in, n, out, x, b); }
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_EF256V: vbxget32(in, x);*out++ = x; --n;
       if(mdelta) {                                           		return n==256?efano1dec256v32(in, n, out, x+1 ):efano1dec32(     in, n, out, x+1); }
       else {                                              		return n==256?efanodec256v32( in, n, out, x   ):efanodec32(      in, n, out, x); }
@@ -467,7 +490,9 @@ unsigned char *coddecomps(unsigned char *in, unsigned _n, unsigned char *_out, i
     case TB_DELTA32:  memcpy(out, in, outlen); mdelta?bitd1dec32(out, n, -mdelta):bitddec32(out, n, 0); return in + outlen;
     case TB_XOR32:    memcpy(out, in, outlen); bitxdec32(out, n, -mdelta); return in + outlen;
       #endif
+      #if !defined(NCODEC1) && !defined(NCODEC2)
     #include "ext/beplugds_.c" 
+      #endif
   } 
   return in;
 }
@@ -484,7 +509,7 @@ unsigned char *codcompz(unsigned char *_in, unsigned _n, unsigned char *out, int
     case TB_PF128V: x = *in++; --n; vbxput32(out, x);                               return n == 128?p4zenc128v32(in, n, out, x):p4zenc32(in, n, out, x);
     case TB_PFN128V:    										                    return out+p4nzenc128v32( in, n, out );
     case TB_BP128V: x = *in++; --n; vbxput32(out, x);b = bitz32(in, n, x); *out++=b;return n == 128?bitzpack128v32(in, n, out, x, b):bitzpack32(in, n, out, x, b);
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_BP256V: x = *in++; --n; vbxput32(out, x);b = bitz32(in, n, x); *out++=b;return n == 256?bitzpack256v32(in, n, out, x, b):bitzpack32(in, n, out,x, b);
         #endif 
       #endif
@@ -504,7 +529,7 @@ unsigned char *coddecompz(unsigned char *in, unsigned _n, unsigned char *_out, i
     case TB_PFN128V:       							  		    return in+p4nzdec128v32(in, n, out);
     case TB_PF128V:vbxget32(in, x); *out++ = x; --n;            return n == 128?p4zdec128v32(in, n, out, x):p4zdec32(in, n, out, x);
     case TB_BP128V:vbxget32(in, x); *out++ = x; --n; b = *in++; return n == 128?bitzunpack128v32(in, n, out, x, b):bitzunpack32(in, n, out, x, b);
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_BP256V:vbxget32(in, x); *out++ = x; --n; b = *in++; return n == 256?bitzunpack256v32(in, n, out, x, b):bitzunpack32(in, n, out, x, b);
 	    #endif
 	  #endif
@@ -531,6 +556,7 @@ unsigned char *codcomp(unsigned char *_in, unsigned _n, unsigned char *out, int 
     case TB_FOR :  
     case TB_FORDA:   b = bitfm32( in, n, &x); vbxput32(out, x); *out++=b; return bitfpack32( in, n, out, x, b); 
 
+    case TB_BPDA:
     case TB_BP128H:
     case TB_BP:      if(b < 0) { BITSIZE32(in, n, b); *out++ = b; } 
 	                 return bitpack32(in, n, out, b);
@@ -546,7 +572,7 @@ unsigned char *codcomp(unsigned char *_in, unsigned _n, unsigned char *out, int 
 
     case TB_BP128V:  if(b < 0) { BITSIZE32(in, n, b); *out++ = b; } 
 					 return n == 128?bitpack128v32(in, n, out, b):bitpack32(in, n, out, b);
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_PF256V:  return n == 256?p4enc256v32(in, n, out):p4enc32(in, n, out);
     case TB_PFN256V: return out+p4nenc256v32(in, n, out);
 
@@ -568,11 +594,13 @@ unsigned char *codcomp(unsigned char *_in, unsigned _n, unsigned char *out, int 
     case TB_ZIGZAG32: bitzenc32(              in, n,(unsigned *)out,0,0); return out + _n;
       #endif
       //---- Floating point ----------------------
-	case TB_FPPFOR64: return fppenc64(   (double *)in, PAD8(_n), out); 
-	case TB_FPFFOR64: return fpfcmenc64( (double *)in, PAD8(_n), out); 
-	case TB_FPDFOR64: return fpdfcmenc64((double *)in, PAD8(_n), out); 
+	case TB_FPPFOR64: ctou64(out) = ctou64(_in); return fppenc64(   (uint64_t *)(_in+8), PAD8(_n)-1, out+8, ctou64(_in)); 
+	case TB_FPFFOR64: ctou64(out) = ctou64(_in); return fpfcmenc64( (uint64_t *)(_in+8), PAD8(_n)-1, out+8, ctou64(_in));
+	case TB_FPDFOR64: ctou64(out) = ctou64(_in); return fpdfcmenc64((uint64_t *)(_in+8), PAD8(_n)-1, out+8, ctou64(_in));
     case TB_PF64:     return p4enc64((uint64_t *)in,   PAD8(_n), out);
+      #if !defined(NCODEC1) && !defined(NCODEC2)
     #include "ext/beplugc_.c"	  
+      #endif
   }
   return out;
 } 
@@ -584,11 +612,12 @@ unsigned char *coddecomp(unsigned char *in, unsigned _n, unsigned char *_out, in
     case TB_VSIMPLE:    				 		return vsdec32(  in, n, out); 
     case TB_EF:    					     		return in; // Not applicable
     case TB_PFDA :  							return p4decx32( in, n, out);  //case TB_PFM:    vbxget32(in, x); 			return p4ddec32( in, n, out, x); 
-    case TB_PDI: { vbxget32(in, x); uint32_t mdelta; vbget32(in, mdelta); x = x << 5 | (mdelta & 31); in = p4dec32(in, n, out); bitdidec32(out, n, x, mdelta>>5); break; }
+    case TB_PDI: { uint32_t mdelta;  vbxget32(in, x); vbget32(in, mdelta); x = x << 5 | (mdelta & 31); in = p4dec32(in, n, out); bitdidec32(out, n, x, mdelta>>5); break; }
 
     case TB_FOR:    vbxget32(in, x); b = *in++; return bitfunpack32( in, n, out, x, b);
     case TB_FORDA:  vbxget32(in, x); b = *in++; return bitfunpackx32(in, n, out, x, b);      
     
+    case TB_BPDA:  	if(b < 0) b = *in++; 		return _bitunpackx32(       in, n, out, b);
     case TB_BP:    	if(b < 0) b = *in++; 		return bitunpack32(         in, n, out, b);
     case TB_BPN: 	                     		return in+bitnunpack32(     in, n, out);
  	  #if C_TURBOPFORV
@@ -600,7 +629,7 @@ unsigned char *coddecomp(unsigned char *in, unsigned _n, unsigned char *_out, in
     case TB_FOR128V: vbxget32(in, x); b = *in++;return bitfunpack128v32( in, n, out, x, b);
 
     case TB_BP128V:   if(b < 0) b = *in++; 		return n != 128?bitunpack32(in, n, out, b):bitunpack128v32(in, n, out, b);
-        #ifdef __AVX2__
+      #if defined(__AVX2__) && defined(AVX2_ON)
     case TB_FOR256V: vbxget32(in, x); b = *in++;return bitfunpack256v32( in, n, out, x, b);
 
     case TB_PF256V : __builtin_prefetch(in+256);return n == 256?p4dec256v32(in, n, out):p4dec32(in, n, out);
@@ -621,11 +650,13 @@ unsigned char *coddecomp(unsigned char *in, unsigned _n, unsigned char *_out, in
     case TB_ZIGZAG32: memcpy(out, in, outlen); bitzdec32(out, n, 0); 			  	   return in + outlen;
 	  #endif
       //---- Floating point (64 bits)----------------------
-	case TB_FPPFOR64: return fppdec64(   in, PAD8(outlen), (double *)out); 
-	case TB_FPFFOR64: return fpfcmdec64( in, PAD8(outlen), (double *)out); 
-	case TB_FPDFOR64: return fpdfcmdec64(in, PAD8(outlen), (double *)out); 
+	case TB_FPPFOR64: ctou64(_out) = ctou64(in); return fppdec64(   in+8, PAD8(outlen)-1, (uint64_t *)(_out+8), ctou64(in)); 
+	case TB_FPFFOR64: ctou64(_out) = ctou64(in); return fpfcmdec64( in+8, PAD8(outlen)-1, (uint64_t *)(_out+8), ctou64(in));; 
+	case TB_FPDFOR64: ctou64(_out) = ctou64(in); return fpdfcmdec64(in+8, PAD8(outlen)-1, (uint64_t *)(_out+8), ctou64(in));
     case TB_PF64:     return p4dec64(    in, PAD8(outlen), (uint64_t *)out);
+      #if !defined(NCODEC1) && !defined(NCODEC2)
     #include "ext/beplugd_.c"	  
+      #endif
   }
   return in;        
 }
