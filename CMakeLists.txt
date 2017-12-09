@@ -3,7 +3,11 @@ project(TurboPFor)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(MARCH "-march=native -mavx2 -mbmi2")
+if(WIN32)
+    add_definitions("-DNCODEC1 -DNODEC2 -DUSE_SSE")
+else()
+    set(MARCH "-march=native -mavx2 -mbmi2")
+endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MARCH}")
 
 set(SOURCE_FILES
