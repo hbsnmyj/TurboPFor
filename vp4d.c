@@ -324,7 +324,7 @@ ALWAYS_INLINE unsigned char *TEMPLATE2(_P4DEC, USIZE)(unsigned char *__restrict 
 }
 
 unsigned char *TEMPLATE2(P4DEC, USIZE)(unsigned char *__restrict in, unsigned n, uint_t *__restrict out P4DELTA(uint_t start) ) {
-  unsigned b = 0, bx = 0, i = 0
+  unsigned b = 0, bx = 0, i = 0;
   if(!n) return in;
   b = *in++;
   if(likely(!(b & 0x40))) {
