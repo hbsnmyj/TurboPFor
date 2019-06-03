@@ -24,6 +24,7 @@ set(HEADER_FILES
 add_library(turbopfor ${SOURCE_FILES})
 target_sources(turbopfor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${HEADER_FILES}>)
 target_include_directories(turbopfor PUBLIC $<INSTALL_INTERFACE:include/turbopfor>)
+target_compile_definitions(turbopfor PUBLIC USE_SSE USE_AVX2)
 
 include( CMakePackageConfigHelpers )
 set(CONFIG_PACKAGE_INSTALL_DIR share/turbopfor/cmake)
