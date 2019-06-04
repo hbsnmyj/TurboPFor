@@ -3,8 +3,9 @@ project(TurboPFor)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(MARCH "-march=native -mavx2 -mbmi2")
+set(MARCH "-march=native -mssse3 -mavx2 -mbmi2")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MARCH}")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${MARCH}")
 
 set(SOURCE_FILES
     vp4c.c
